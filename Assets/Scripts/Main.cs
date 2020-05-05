@@ -9,6 +9,7 @@ using System.Collections.Generic;
 public class Main : MonoBehaviour
 {
 	public static Main Instance;
+
 	public GameObject textVersionFR;
 	public GameObject textVersionEN;
 	public Button buttonToolTips;
@@ -41,6 +42,8 @@ public class Main : MonoBehaviour
 
 	public bool toolTipsON;
 
+	public bool testXSensUsed;
+
 	// =================================================================================================================================================================
 	/// <summary> Initialisation du script. </summary>
 
@@ -48,6 +51,7 @@ public class Main : MonoBehaviour
 	{
 		Instance = this;
 		toolTipsON = true;
+		MainParameters.Instance.testXSensUsed = testXSensUsed;
 
 		// Logiciel sera désactivé automatiquement après la date spécifiée ci - dessous
 		// Un fichier "bidon" est créé pour gérer les cas où l'utilisateur aurait modifié la date par la suite, alors le logiciel resterait désactivé quand même
@@ -188,6 +192,7 @@ public class Main : MonoBehaviour
 
 		// Section Animation
 
+		Debug.Log(AnimationF.Instance.lineStickFigure);
 		if (AnimationF.Instance.lineStickFigure != null)
 		{
 			AnimationF.Instance.textCurveName1.text = languagesUsed.leftSide;

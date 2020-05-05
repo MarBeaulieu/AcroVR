@@ -45,8 +45,9 @@ public class AnimationF : MonoBehaviour
     LineRenderer[] lineFloor;
 
     public bool animateON = false;
+	public string playMode = MainParameters.Instance.languages.Used.animatorPlayModeSimulation;
 
-    int frameN = 0;
+	int frameN = 0;
 	int subFrameN = 0;							// Un frame = dt, alors sous-frame est dt / n, pour le moment dt = 0.02 et n = 2, donc subFrameN = 0, 1
     //int firstFrame = 0;
     int numberFrames = 0;
@@ -66,7 +67,6 @@ public class AnimationF : MonoBehaviour
 	public float[] debugTimeElapsed;
     float timeFrame = 0;
     float timeStarted = 0;
-    string playMode = MainParameters.Instance.languages.Used.animatorPlayModeSimulation;
     float factorPlaySpeed = 1;
 
     double[] t;
@@ -91,9 +91,12 @@ public class AnimationF : MonoBehaviour
 
         dropDownPlayMode.interactable = false;
         dropDownPlayView.interactable = false;
-        buttonPlay.interactable = false;
-        buttonPlayImage.color = Color.gray;
-        dropDownPlaySpeed.interactable = false;
+		if (!MainParameters.Instance.testXSensUsed)
+		{
+			buttonPlay.interactable = false;
+			buttonPlayImage.color = Color.gray;
+		}
+		dropDownPlaySpeed.interactable = false;
         buttonGraph.interactable = false;
         buttonGraphImage.color = Color.gray;
         buttonRealTime.interactable = false;
@@ -226,29 +229,7 @@ public class AnimationF : MonoBehaviour
         // On ajoute une marge de 10% sur les dimensions mimimum et maximum, pour être certain que les mouvements ne dépasseront pas la dimension du panneau utilisé
 
         if (playMode == MainParameters.Instance.languages.Used.animatorPlayModeSimulation || playMode == MainParameters.Instance.languages.Used.animatorPlayModeGesticulation)
-        {
-            float[] tagX, tagY, tagZ;
-            tagXMin = tagYMin = tagZMin = 9999;
-            tagXMax = tagYMax = tagZMax = -9999;
-            double[] qf = new double[q1.GetUpperBound(0) + 1];
-            for (int i = 0; i <= q1.GetUpperBound(1); i++)
-            {
-                qf = MathFunc.MatrixGetColumnD(q1, i);
-                if (playMode == MainParameters.Instance.languages.Used.animatorPlayModeGesticulation)       // Mode Gesticulation: Les DDL racine doivent être à zéro
-                    for (int j = 0; j < MainParameters.Instance.joints.lagrangianModel.q1.Length; j++)
-                        qf[MainParameters.Instance.joints.lagrangianModel.q1[j] - 1] = 0;
-
-                EvaluateTags(qf, out tagX, out tagY, out tagZ);
-                tagXMin = Math.Min(tagXMin, Mathf.Min(tagX));
-                tagXMax = Math.Max(tagXMax, Mathf.Max(tagX));
-                tagYMin = Math.Min(tagYMin, Mathf.Min(tagY));
-                tagYMax = Math.Max(tagYMax, Mathf.Max(tagY));
-                tagZMin = Math.Min(tagZMin, Mathf.Min(tagZ));
-                tagZMax = Math.Max(tagZMax, Mathf.Max(tagZ));
-            }
-            AddMarginOnMinMax(0.1f);
-            EvaluateFactorTags2Screen();
-        }
+			InitScreenVolumeDimension(q1);
         else
             PlayReset();
 
@@ -461,7 +442,7 @@ public class AnimationF : MonoBehaviour
     // =================================================================================================================================================================
     /// <summary> Exécution d'un frame de l'animation. </summary>
 
-    void PlayOneFrame()
+    public void PlayOneFrame()
     {
         MainParameters.StrucJoints joints = MainParameters.Instance.joints;
 
@@ -477,9 +458,12 @@ public class AnimationF : MonoBehaviour
 
 		// Lecture des données d'interpolation pour le sous-frame actuel
 
-		Trajectory trajectory = new Trajectory(MainParameters.Instance.joints.lagrangianModel, (2 * frameN + subFrameN) * timeFrame, MainParameters.Instance.joints.lagrangianModel.q2,
-			out DoSimulation.qFrame2, out DoSimulation.qdotFrame2, out DoSimulation.qddotFrame2);
-		trajectory.ToString();                  // Pour enlever un warning lors de la compilation
+		if (!MainParameters.Instance.testXSensUsed)
+		{
+			Trajectory trajectory = new Trajectory(MainParameters.Instance.joints.lagrangianModel, (2 * frameN + subFrameN) * timeFrame, MainParameters.Instance.joints.lagrangianModel.q2,
+				out DoSimulation.qFrame2, out DoSimulation.qdotFrame2, out DoSimulation.qddotFrame2);
+			trajectory.ToString();                  // Pour enlever un warning lors de la compilation
+		}
 
 		// Si le sous-frame est un sous-frame intermédiaire, alors on fait aucun calcul d'intégration et on affiche rien
 
@@ -720,7 +704,7 @@ public class AnimationF : MonoBehaviour
     // =================================================================================================================================================================
     /// <summary> Ajouter une marge de sécurité sur les dimensions mimimum et maximum, pour être certain que les mouvements ne dépasseront pas la dimension du panneau utilisé. </summary>
 
-    void AddMarginOnMinMax(float factor)
+    public void AddMarginOnMinMax(float factor)
     {
         float margin;
 
@@ -740,7 +724,7 @@ public class AnimationF : MonoBehaviour
     // =================================================================================================================================================================
     /// <summary> Calcul du facteur de correspondance entre la dimension du volume des Tags et la dimension du volume disponible à l'écran. </summary>
 
-    void EvaluateFactorTags2Screen()
+    public void EvaluateFactorTags2Screen()
     {
         // Calcul du facteur de correspondance.
 
@@ -824,5 +808,37 @@ public class AnimationF : MonoBehaviour
 			DoSimulation.qdotFrame1[i] = DoSimulation.qdotFrame2[i];
 			DoSimulation.qddotFrame1[i] = DoSimulation.qddotFrame2[i];
 		}
+	}
+
+	// =================================================================================================================================================================
+	/// <summary> Initialisation de la dimension du volume utilisé à l'écran. </summary>
+	// Calculer un facteur de correspondance entre le volume utilisé par la silhouette et la dimension du volume disponible pour l'affichage
+	// Pour cela, il nous faut calculer les valeurs minimum et maximum des DDLs de la silhouette, dans les 3 dimensions
+	// Même si on modifie la dimension de la silhouette, on conserve quand même les proportions de la sihouette dans les 3 dimensions, donc le facteur est unique pour les 3 dimensions
+	// On ajoute une marge de 10% sur les dimensions mimimum et maximum, pour être certain que les mouvements ne dépasseront pas la dimension du panneau utilisé
+
+	public void InitScreenVolumeDimension(float[,] q1)
+	{
+		float[] tagX, tagY, tagZ;
+		tagXMin = tagYMin = tagZMin = 9999;
+		tagXMax = tagYMax = tagZMax = -9999;
+		double[] qf = new double[q1.GetUpperBound(0) + 1];
+		for (int i = 0; i <= q1.GetUpperBound(1); i++)
+		{
+			qf = MathFunc.MatrixGetColumnD(q1, i);
+			if (playMode == MainParameters.Instance.languages.Used.animatorPlayModeGesticulation)       // Mode Gesticulation: Les DDL racine doivent être à zéro
+				for (int j = 0; j < MainParameters.Instance.joints.lagrangianModel.q1.Length; j++)
+					qf[MainParameters.Instance.joints.lagrangianModel.q1[j] - 1] = 0;
+
+			EvaluateTags(qf, out tagX, out tagY, out tagZ);
+			tagXMin = Math.Min(tagXMin, Mathf.Min(tagX));
+			tagXMax = Math.Max(tagXMax, Mathf.Max(tagX));
+			tagYMin = Math.Min(tagYMin, Mathf.Min(tagY));
+			tagYMax = Math.Max(tagYMax, Mathf.Max(tagY));
+			tagZMin = Math.Min(tagZMin, Mathf.Min(tagZ));
+			tagZMax = Math.Max(tagZMax, Mathf.Max(tagZ));
+		}
+		AddMarginOnMinMax(0.1f);
+		EvaluateFactorTags2Screen();
 	}
 }

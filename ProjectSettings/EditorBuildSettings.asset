@@ -6,5 +6,8 @@ EditorBuildSettings:
   serializedVersion: 2
   m_Scenes:
   - enabled: 1
-    path: Assets/Scenes/AcroVR.unity
+    path: Assets/Scenes/TestXSens.unity
     guid: 59ba324ab7bc34141874ee41fac544a6
+  - enabled: 0
+    path: Assets/Scenes/AcroVR.unity
+    guid: 425c64e324290b14eb64bb1cec4a8ba2

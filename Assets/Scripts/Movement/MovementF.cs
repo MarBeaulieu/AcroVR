@@ -63,7 +63,8 @@ public class MovementF : MonoBehaviour
 
 		calledFromScript = false;
 		enableSymetricLeftRight = false;
-		Main.Instance.EnableDisableControls(false, false);
+		if (!MainParameters.Instance.testXSensUsed)
+			Main.Instance.EnableDisableControls(false, false);
 	}
 
 	// =================================================================================================================================================================

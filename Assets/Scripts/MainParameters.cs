@@ -294,7 +294,9 @@ public class MainParameters
 
 	/// <summary> Numéros des types de graphique des résultats qui seront affiché dans le panneau des graphiques des résultats. </summary>
 	public int[] resultsGraphicsUsed;
-	public bool testDataFileDone = false;
+
+	public bool testDataFileDone = false;           // Temporaire, utilisé pour debug (comparer les résultats de différents algorithmes de calcul d'intégration)
+	public bool testXSensUsed = false;				// Identification de la scène utilisée (false = AcroVR, true = TestXSens)
 
 	#region singleton 
 	// modèle singleton tiré du site : https://msdn.microsoft.com/en-us/library/ff650316.aspx
